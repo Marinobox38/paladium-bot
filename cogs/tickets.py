@@ -1,7 +1,9 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 from discord.ui import View, Button
 from discord import Interaction
+import datetime
 
 GUILD_ID = 1402777306455478354
 TICKETS_CATEGORY = 1403037947476836523
@@ -14,10 +16,10 @@ class TicketCloseView(View):
 
     @discord.ui.button(label="Fermer le ticket", style=discord.ButtonStyle.danger)
     async def close(self, interaction: Interaction, button):
-        chan = interaction.client.get_channel(self.channel_id)
+        chan = interaction.channel  # Le salon du ticket
         if chan:
             await chan.send("Fermeture du ticket dans 5 secondes...")
-            await discord.utils.sleep_until(discord.utils.utcnow()+discord.timedelta(seconds=5))
+            await discord.utils.sleep_until(discord.utils.utcnow() + datetime.timedelta(seconds=5))
             try:
                 await chan.delete(reason=f"Ticket fermé par {interaction.user}")
             except Exception:
@@ -35,12 +37,16 @@ class TicketsCog(commands.Cog):
     @app_commands.command(name="ticket-deploy", description="Déployer le message d'ouverture de ticket")
     @app_commands.checks.has_permissions(administrator=True)
     async def ticket_deploy(self, interaction: Interaction):
-        embed = discord.Embed(title="📩 Ouvrir un ticket", description=(
-            "Règlement des tickets :\n"
-            "- Utilise un ticket pour réclamations liées aux primes uniquement.\n"
-            "- Fournis toutes les preuves nécessaires.\n"
-            "- Respecte le staff et les autres joueurs."
-        ), color=discord.Color.blurple())
+        embed = discord.Embed(
+            title="📩 Ouvrir un ticket",
+            description=(
+                "Règlement des tickets :\n"
+                "- Utilise un ticket pour réclamations liées aux primes uniquement.\n"
+                "- Fournis toutes les preuves nécessaires.\n"
+                "- Respecte le staff et les autres joueurs."
+            ),
+            color=discord.Color.blurple()
+        )
         view = View()
         view.add_item(Button(label="Ouvrir un ticket", style=discord.ButtonStyle.primary, custom_id="open_ticket_btn"))
         await interaction.response.send_message(embed=embed, view=view)

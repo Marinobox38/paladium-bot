@@ -3,7 +3,7 @@ import aiosqlite
 import asyncio
 from discord.ext import commands, tasks
 from discord.ui import Modal, TextInput, View, Button
-from discord import Interaction
+from discord import Interaction, app_commands
 from utils.paladium_api import verify_player_basic
 
 DB_PATH = "primes.db"
@@ -24,11 +24,12 @@ class PrimeModal(Modal, title="Déposer une Prime Paladium"):
 
     async def on_submit(self, interaction: Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
-        ch = await verify_player_basic(self.pseudo.value)
+        # Appels synchrones à verify_player_basic, donc sans await
+        ch = verify_player_basic(self.pseudo.value)
         if not ch["ok"]:
             await interaction.followup.send(f"❌ Vérification déposant: {ch['reason']}", ephemeral=True)
             return
-        ci = await verify_player_basic(self.cible.value)
+        ci = verify_player_basic(self.cible.value)
         if not ci["ok"]:
             await interaction.followup.send(f"❌ Vérification cible: {ci['reason']}", ephemeral=True)
             return
@@ -140,7 +141,7 @@ class PrimesCog(commands.Cog):
 
     async def init_db(self):
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("""                    CREATE TABLE IF NOT EXISTS primes (
+            await db.execute("""CREATE TABLE IF NOT EXISTS primes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     chasseur TEXT,
                     chasseur_discord INTEGER,
@@ -150,15 +151,13 @@ class PrimesCog(commands.Cog):
                     status TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     published_message_id INTEGER
-                )
-            """)
-            await db.execute("""                    CREATE TABLE IF NOT EXISTS claims (
+                )""")
+            await db.execute("""CREATE TABLE IF NOT EXISTS claims (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     prime_id INTEGER,
                     claimer_discord INTEGER,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+                )""")
             await db.commit()
 
     @commands.Cog.listener()

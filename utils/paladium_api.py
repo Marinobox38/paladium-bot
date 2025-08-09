@@ -1,6 +1,5 @@
-# utils/paladium_api.py
 import os
-import aiohttp
+import requests
 
 PALADIUM_API_KEY = os.getenv("PALADIUM_API_KEY")
 PALADIUM_API_BASE = "https://api.paladium.games/v1"
@@ -8,27 +7,18 @@ PALADIUM_API_BASE = "https://api.paladium.games/v1"
 if not PALADIUM_API_KEY:
     raise RuntimeError("Set PALADIUM_API_KEY environment variable")
 
-async def fetch_paladium(path: str, session: aiohttp.ClientSession = None, timeout=15):
+def fetch_paladium(path: str, timeout=15):
     url = f"{PALADIUM_API_BASE}{path}"
     headers = {"Authorization": PALADIUM_API_KEY}
-    own_session = False
-    if session is None:
-        session = aiohttp.ClientSession()
-        own_session = True
+    resp = requests.get(url, headers=headers, timeout=timeout)
     try:
-        async with session.get(url, headers=headers, timeout=timeout) as resp:
-            status = resp.status
-            try:
-                data = await resp.json()
-            except Exception:
-                data = await resp.text()
-            return status, data
-    finally:
-        if own_session:
-            await session.close()
+        data = resp.json()
+    except Exception:
+        data = resp.text
+    return resp.status_code, data
 
-async def verify_player_basic(pseudo: str):
-    status, data = await fetch_paladium(f"/player/profile/{pseudo}")
+def verify_player_basic(pseudo: str):
+    status, data = fetch_paladium(f"/player/profile/{pseudo}")
     if status != 200:
         return {"ok": False, "reason": f"Paladium API returned {status}", "data": data}
     is_crack = False
